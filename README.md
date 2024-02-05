@@ -4,4 +4,14 @@ Sample app for `swift-nio` services to test out the server side swift functional
 
 ## Getting Started
 
-Document will evaluve based on the development.
+### How to run
+
+Clone the repository directly and run the follow commends to build, run and test.
+
+```sh
+swift build
+swift run
+swift test
+```
+
+Document will evolve based on the development.
