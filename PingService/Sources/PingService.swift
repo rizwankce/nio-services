@@ -13,8 +13,8 @@ struct PingService: ParsableCommand {
     @Flag(name: .shortAndLong, help: "Print status updates while server running.")
     var verbose = false
 
-    @Option(name: .shortAndLong, help: "IP Address to bind ")
-    var ipAddress: String?
+    @Option(name: .shortAndLong, help: "Host to bind ")
+    var host: String?
 
     @Option(name: .shortAndLong, help: "Port number to bind")
     var port: Int?
@@ -38,10 +38,10 @@ struct PingService: ParsableCommand {
             try! group.syncShutdownGracefully()
         }
 
-        let bindingIP = ipAddress ?? "localhost"
+        let bindingHost = host ?? "localhost"
         let bindingPort = port ?? 2345
 
-        let channel = try bootstrap.bind(host: bindingIP, port: bindingPort).wait()
+        let channel = try bootstrap.bind(host: bindingHost, port: bindingPort).wait()
         print("Server started and listening on \(channel.localAddress!)")
 
         try channel.closeFuture.wait()

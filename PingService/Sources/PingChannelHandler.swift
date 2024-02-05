@@ -10,7 +10,7 @@ import NIOCore
 import NIOPosix
 import NIOHTTP1
 
-private final class PingChannelHandler: ChannelInboundHandler {
+public final class PingChannelHandler: ChannelInboundHandler {
     public typealias InboundIn = HTTPServerRequestPart
     public typealias OutboundOut = HTTPServerResponsePart
 
