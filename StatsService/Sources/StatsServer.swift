@@ -64,6 +64,12 @@ public class StatsServer {
 
         let requestHead = HTTPRequestHead(version: .http1_1, method: .GET, uri: "/ping")
 
+//        I don't know why `scheduleRepeatedTask` is not working ...
+//        clientChannel.eventLoop.next().scheduleRepeatedTask(initialDelay: .zero, delay: .seconds(Int64(delay))) { task in
+//            clientChannel.write(HTTPClientRequestPart.head(requestHead), promise: nil)
+//            _ = clientChannel.writeAndFlush(HTTPClientRequestPart.end(nil))
+//        }
+
         #warning("scheduling task with delay not triggering the request.. :(")
         clientChannel.write(HTTPClientRequestPart.head(requestHead), promise: nil)
         _ = clientChannel.writeAndFlush(HTTPClientRequestPart.end(nil))
