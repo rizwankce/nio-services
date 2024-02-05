@@ -19,32 +19,14 @@ struct PingService: ParsableCommand {
     @Option(name: .shortAndLong, help: "Port number to bind")
     var port: Int?
 
+    @Argument(help: "Size of window to get average, min and max response times")
+    var windowSize: Int
+
     mutating func run() throws {
-        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1) // threads can be System.coreCount
-        let bootstrap = ServerBootstrap(group: group)
-            .serverChannelOption(ChannelOptions.backlog, value: 256)
-            .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
-            .childChannelInitializer { channel in
-                channel.pipeline.configureHTTPServerPipeline(withErrorHandling: true)
-                    .flatMap{
-                        channel.pipeline.addHandler(PingChannelHandler())
-                    }
-            }
-            .childChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
-            .childChannelOption(ChannelOptions.maxMessagesPerRead, value: 16)
-            .childChannelOption(ChannelOptions.recvAllocator, value: AdaptiveRecvByteBufferAllocator())
-
-        defer {
-            try! group.syncShutdownGracefully()
-        }
-
         let bindingHost = host ?? "localhost"
         let bindingPort = port ?? 2345
 
-        let channel = try bootstrap.bind(host: bindingHost, port: bindingPort).wait()
-        print("Server started and listening on \(channel.localAddress!)")
-
-        try channel.closeFuture.wait()
-        print("Server closed")
+        let pingServer = PingServer(host: bindingHost, port: bindingPort, windowSize: windowSize)
+        try pingServer.run()
     }
 }

@@ -14,12 +14,19 @@ public final class PingChannelHandler: ChannelInboundHandler {
     public typealias InboundIn = HTTPServerRequestPart
     public typealias OutboundOut = HTTPServerResponsePart
 
+    private let pingResponseTime: PingResponseTime
+
+    init(pingResponseTime: PingResponseTime) {
+        self.pingResponseTime = pingResponseTime
+    }
+
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let requestPart = self.unwrapInboundIn(data)
         switch requestPart {
             case .head(let request):
                 if request.uri.unicodeScalars.starts(with: "/ping".unicodeScalars) {
                     let responseTime = Int64.random(in: 20 ... 5000)
+                    pingResponseTime.add(time: Double(responseTime))
                     context.eventLoop.scheduleTask(in: .milliseconds(responseTime)) {
                         let response = HTTPServerResponsePart.head(HTTPResponseHead(version: .http1_1, status: .ok))
                         let body = HTTPServerResponsePart.body(.byteBuffer(ByteBuffer(string: "OK")))
