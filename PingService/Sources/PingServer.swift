@@ -47,8 +47,12 @@ public class PingServer {
         let channel = try serverBootstrap.bind(host: host, port: port).wait()
         print("Server started and listening on \(channel.localAddress!)")
 
-        eventLoopGroup.next().scheduleRepeatedTask(initialDelay: .seconds(15), delay: .seconds(15)) { task in
+        eventLoopGroup.next().scheduleRepeatedTask(initialDelay: .minutes(5), delay: .minutes(5)) { task in
             self.saveStatisticsToFile()
+        }
+
+        eventLoopGroup.next().scheduleRepeatedTask(initialDelay: .hours(48), delay: .hours(48)) { task in
+            self.purgeOldStatistics()
         }
 
         try channel.closeFuture.wait()
@@ -56,8 +60,12 @@ public class PingServer {
     }
 
     func saveStatisticsToFile() {
-        print("Automatic backup started...")
+        print("Automatic backup started ...")
         let statsResponseModel = pingResponseTime.getStatsResponseModel()
         print("Stats to be saved :\(statsResponseModel)")
+    }
+
+    func purgeOldStatistics() {
+        print("Automatic purging old statistics started ...")
     }
 }
