@@ -8,12 +8,12 @@
 import Foundation
 
 public struct ResponseTime: Codable {
-    let average: Int
-    let min: Int
-    let max: Int
+    let average: Double
+    let min: Double
+    let max: Double
 }
 
 public struct StatsResponseModel: Codable {
-    let uptime: Int
+    let uptime: Double
     let responseTime: ResponseTime
 }

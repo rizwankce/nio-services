@@ -15,13 +15,18 @@ public final class PingChannelHandler: ChannelInboundHandler {
     public typealias OutboundOut = HTTPClientRequestPart
 
     private let delay: Int
+    private var responseStartTime: Date?
+    private var pingResponseTime: PingResponseTime
 
-    init(delay: Int) {
+    init(delay: Int, pingResponseTime: PingResponseTime) {
         self.delay = delay
+        self.responseStartTime = nil
+        self.pingResponseTime = pingResponseTime
     }
 
     public func channelActive(context: ChannelHandlerContext) {
         print("Client connected to \(context.remoteAddress!)")
+        responseStartTime = Date()
     }
 
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
@@ -31,6 +36,12 @@ public final class PingChannelHandler: ChannelInboundHandler {
         switch clientResponse {
             case .head(let responseHead):
                 print("Received status: \(responseHead)")
+                if let startTime = responseStartTime {
+                    let responseTime = Date().timeIntervalSince(startTime)
+                    print("Response time: \(responseTime)")
+                    responseStartTime = nil
+                    pingResponseTime.add(time: responseTime)
+                }
             case .body(let byteBuffer):
                 let string = String(buffer: byteBuffer)
                 print("Received: '\(string)' back from the server")
