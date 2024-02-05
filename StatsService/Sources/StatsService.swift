@@ -33,7 +33,7 @@ struct StatsService: ParsableCommand {
         let clientPort = pingPort ?? 2345
         let serverHost = host ?? "localhost"
         let serverPort = port ?? 2346
-        var server = StatsServer(delay: delay, clientHost: clientHost, clientPort: clientPort, host: serverHost, port: serverPort)
+        let server = StatsServer(delay: delay, clientHost: clientHost, clientPort: clientPort, host: serverHost, port: serverPort)
         try server.run()
     }
 }
