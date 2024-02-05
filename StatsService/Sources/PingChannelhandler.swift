@@ -14,11 +14,18 @@ public final class PingChannelHandler: ChannelInboundHandler {
     public typealias InboundIn = HTTPClientResponsePart
     public typealias OutboundOut = HTTPClientRequestPart
 
+    private let delay: Int
+
+    init(delay: Int) {
+        self.delay = delay
+    }
+
     public func channelActive(context: ChannelHandlerContext) {
         print("Client connected to \(context.remoteAddress!)")
     }
 
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        print("client Channel Read")
         let clientResponse = self.unwrapInboundIn(data)
 
         switch clientResponse {

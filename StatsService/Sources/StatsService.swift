@@ -25,10 +25,15 @@ struct StatsService: ParsableCommand {
     @Option(name: .shortAndLong, help: "Port number to bind")
     var port: Int?
     
+    @Argument(help: "Delay to access the ping server (in milli seconds)")
+    var delay: Int
+
     mutating func run() throws {
         let clientHost = pingHost ?? "localhost"
         let clientPort = pingPort ?? 2345
-        var server = StatsServer(clientHost: clientHost, clientPort: clientPort)
+        let serverHost = host ?? "localhost"
+        let serverPort = port ?? 2346
+        var server = StatsServer(delay: delay, clientHost: clientHost, clientPort: clientPort, host: serverHost, port: serverPort)
         try server.run()
     }
 }
