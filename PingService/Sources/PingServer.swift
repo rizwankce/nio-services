@@ -9,6 +9,8 @@ import Foundation
 import NIOCore
 import NIOPosix
 import NIOHTTP1
+import NIOFoundationCompat
+import NIOFileSystem
 
 public class PingServer {
     let host: String
@@ -17,14 +19,16 @@ public class PingServer {
     let serverBootstrap: ServerBootstrap
     let windowSize: Int
     let pingResponseTime: PingResponseTime
+    let filePath: String
 
-    init(host: String, port: Int, windowSize: Int) {
+    init(host: String, port: Int, windowSize: Int, filePath: String) {
         self.host = host
         self.port = port
         self.windowSize = windowSize
         self.pingResponseTime = PingResponseTime()
+        self.filePath = filePath
         let pingChannelHandler = PingChannelHandler(pingResponseTime: pingResponseTime)
-        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1) // threads can be System.coreCount
+        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount) // threads can be System.coreCount
         self.serverBootstrap = ServerBootstrap(group: eventLoopGroup)
             .serverChannelOption(ChannelOptions.backlog, value: 256)
             .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
@@ -62,7 +66,23 @@ public class PingServer {
     func saveStatisticsToFile() {
         print("Automatic backup started ...")
         let statsResponseModel = pingResponseTime.getStatsResponseModel()
-        print("Stats to be saved :\(statsResponseModel)")
+
+        // TODO: - Change the file path as required with directories
+        let path = filePath + "stats.json"
+        print("Stats to be saved :\(statsResponseModel) at path : \(path)")
+
+        Task {
+            try await FileSystem.shared.withFileHandle(
+                forWritingAt:  FilePath(path),
+                options: .newFile(replaceExisting: true)
+            ) { file in
+                var buffer: ByteBuffer =  ByteBufferAllocator().buffer(capacity: 1024)
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .prettyPrinted
+                try JSONEncoder().encode(statsResponseModel, into: &buffer)
+                try await file.write(contentsOf: buffer.readableBytesView, toAbsoluteOffset: 0)
+            }
+        }
     }
 
     func purgeOldStatistics() {

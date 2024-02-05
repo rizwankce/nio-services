@@ -22,11 +22,14 @@ struct PingService: ParsableCommand {
     @Argument(help: "Size of window to get average, min and max response times")
     var windowSize: Int
 
+    @Argument(help: "File Path for saving the response times")
+    var filePath: String
+
     mutating func run() throws {
         let bindingHost = host ?? "localhost"
         let bindingPort = port ?? 2345
 
-        let pingServer = PingServer(host: bindingHost, port: bindingPort, windowSize: windowSize)
+        let pingServer = PingServer(host: bindingHost, port: bindingPort, windowSize: windowSize, filePath: filePath)
         try pingServer.run()
     }
 }

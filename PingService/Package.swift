@@ -7,14 +7,16 @@ let dependencies: [Target.Dependency] = [
     .product(name: "ArgumentParser", package: "swift-argument-parser"),
     .product(name: "NIOCore", package: "swift-nio"),
     .product(name: "NIOPosix", package: "swift-nio"),
-    .product(name: "NIOHTTP1", package: "swift-nio")
+    .product(name: "NIOHTTP1", package: "swift-nio"),
+    .product(name: "NIOFoundationCompat", package: "swift-nio"),
+    .product(name: "_NIOFileSystem", package: "swift-nio"),
 ]
 
 let package = Package(
     name: "PingService",
     platforms: [.macOS(.v13)],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
+        .package(url: "https://github.com/apple/swift-nio.git", from: "2.63.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0")
     ],
     targets: [
