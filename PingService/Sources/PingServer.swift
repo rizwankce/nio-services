@@ -20,6 +20,7 @@ public class PingServer {
     let windowSize: Int
     let pingResponseTime: PingResponseTime
     let filePath: String
+    let jsonExporter: JSONExporter
 
     init(host: String, port: Int, windowSize: Int, filePath: String) {
         self.host = host
@@ -27,6 +28,7 @@ public class PingServer {
         self.windowSize = windowSize
         self.pingResponseTime = PingResponseTime()
         self.filePath = filePath
+        self.jsonExporter = JSONExporter(filePath: filePath)
         let pingChannelHandler = PingChannelHandler(pingResponseTime: pingResponseTime)
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount) // threads can be System.coreCount
         self.serverBootstrap = ServerBootstrap(group: eventLoopGroup)
@@ -65,24 +67,7 @@ public class PingServer {
 
     func saveStatisticsToFile() {
         print("Automatic backup started ...")
-        let statsResponseModel = pingResponseTime.getStatsResponseModel()
-
-        // TODO: - Change the file path as required with directories
-        let path = filePath + "stats.json"
-        print("Stats to be saved :\(statsResponseModel) at path : \(path)")
-
-        Task {
-            try await FileSystem.shared.withFileHandle(
-                forWritingAt:  FilePath(path),
-                options: .newFile(replaceExisting: true)
-            ) { file in
-                var buffer: ByteBuffer =  ByteBufferAllocator().buffer(capacity: 1024)
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = .prettyPrinted
-                try JSONEncoder().encode(statsResponseModel, into: &buffer)
-                try await file.write(contentsOf: buffer.readableBytesView, toAbsoluteOffset: 0)
-            }
-        }
+        jsonExporter.export(pingResponseTime.getStatsResponseModel())
     }
 
     func purgeOldStatistics() {
