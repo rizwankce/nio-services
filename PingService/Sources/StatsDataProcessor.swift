@@ -9,7 +9,7 @@ import Foundation
 import NIOFileSystem
 import NIOCore
 
-public class JSONExporter {
+public class StatsDataProcessor {
     let filePath: String
 
     init(filePath: String) {

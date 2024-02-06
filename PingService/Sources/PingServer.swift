@@ -20,7 +20,7 @@ public class PingServer {
     let windowSize: Int
     let pingResponseTime: PingResponseTime
     let filePath: String
-    let jsonExporter: JSONExporter
+    let jsonExporter: StatsDataProcessor
 
     init(host: String, port: Int, windowSize: Int, filePath: String) {
         self.host = host
@@ -28,7 +28,7 @@ public class PingServer {
         self.windowSize = windowSize
         self.pingResponseTime = PingResponseTime()
         self.filePath = filePath
-        self.jsonExporter = JSONExporter(filePath: filePath)
+        self.jsonExporter = StatsDataProcessor(filePath: filePath)
         let pingChannelHandler = PingChannelHandler(pingResponseTime: pingResponseTime)
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount) // threads can be System.coreCount
         self.serverBootstrap = ServerBootstrap(group: eventLoopGroup)
