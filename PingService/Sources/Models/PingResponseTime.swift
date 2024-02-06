@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  PingResponseTime.swift
 //  
 //
 //  Created by Rizwan on 05/02/24.
