@@ -19,4 +19,4 @@ swift run StatsService --ip-address 127.0.0.1 --port 8080 # starts the server wi
 
 ### Routes
 
-- TODO: Add routes
+- `/stats` - return JSON with the up-time of the service, and the average response time as well as min/max times for the entire life-time of the service
