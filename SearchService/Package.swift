@@ -10,6 +10,7 @@ let dependencies: [Target.Dependency] = [
     .product(name: "NIOHTTP1", package: "swift-nio"),
     .product(name: "NIOFoundationCompat", package: "swift-nio"),
     .product(name: "_NIOFileSystem", package: "swift-nio"),
+    .product(name: "swift-polis", package: "swift-polis")
 ]
 
 let package = Package(
@@ -17,7 +18,8 @@ let package = Package(
     platforms: [.macOS(.v13)],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.63.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0")
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
+        .package(url: "https://github.com/ASTRO-POLIS/swift-polis.git", branch: "dev")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.

@@ -9,16 +9,19 @@ import Foundation
 import NIOCore
 import NIOPosix
 import NIOHTTP1
+import swift_polis
 
 public class SearchServer {
     let eventLoopGroup: MultiThreadedEventLoopGroup
     let serverBootstrap: ServerBootstrap
     let host: String
     let port: Int
+    let polisUrl: String
 
-    init(host: String, port: Int) {
+    init(host: String, port: Int, polisUrl: String) {
         self.host = host
         self.port = port
+        self.polisUrl = polisUrl
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1) // threads can be System.coreCount
         let searchChannelHandler = SearchChannelHandler()
         self.serverBootstrap = ServerBootstrap(group: eventLoopGroup)
@@ -45,5 +48,9 @@ public class SearchServer {
 
         try serverChannel.closeFuture.wait()
         print("Server closed")
+    }
+
+    func getPolisData() {
+        
     }
 }

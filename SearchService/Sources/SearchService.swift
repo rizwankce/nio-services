@@ -19,10 +19,13 @@ struct SearchService: ParsableCommand {
     @Option(name: .shortAndLong, help: "Port number to bind")
     var port: Int?
 
+    @Argument(help: "URL to download polis data from")
+    var url: String
+
     mutating func run() throws {
         let serverHost = host ?? "localhost"
         let serverPort = port ?? 2347
-        let server = SearchServer(host: serverHost, port: serverPort)
+        let server = SearchServer(host: serverHost, port: serverPort, polisUrl: url)
         try server.run()
     }
 }

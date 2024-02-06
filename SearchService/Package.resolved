@@ -1,6 +1,24 @@
 {
   "pins" : [
     {
+      "identity" : "scienceetudes",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tuparev/ScienceEtudes",
+      "state" : {
+        "branch" : "dev",
+        "revision" : "740d00927a90f6dc2812217da91634e14d26c996"
+      }
+    },
+    {
+      "identity" : "softwareetudes",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tuparev/SoftwareEtudes",
+      "state" : {
+        "branch" : "dev",
+        "revision" : "3713bc12d8d7e4062ddc16c9ee80e04f34c750b9"
+      }
+    },
+    {
       "identity" : "swift-argument-parser",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser",
@@ -28,12 +46,30 @@
       }
     },
     {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log.git",
+      "state" : {
+        "revision" : "e97a6fcb1ab07462881ac165fdbb37f067e205d5",
+        "version" : "1.5.4"
+      }
+    },
+    {
       "identity" : "swift-nio",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio.git",
       "state" : {
         "revision" : "635b2589494c97e48c62514bc8b37ced762e0a62",
         "version" : "2.63.0"
+      }
+    },
+    {
+      "identity" : "swift-polis",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ASTRO-POLIS/swift-polis.git",
+      "state" : {
+        "branch" : "dev",
+        "revision" : "c29b4efbfe33ee0372046645e199745ca0e7ed5f"
       }
     },
     {
