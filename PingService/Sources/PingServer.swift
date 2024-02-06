@@ -67,11 +67,15 @@ public class PingServer {
 
     func saveStatisticsToFile() {
         print("Automatic backup started ...")
-        jsonExporter.export(pingResponseTime.getStatsResponseModel())
+        Task{
+            try await jsonExporter.export(pingResponseTime.getStatsResponseModel())
+        }
     }
 
     func purgeOldStatistics() {
         print("Automatic purging old statistics started ...")
-        jsonExporter.purgeOldDataIfNeeded()
+        Task {
+            try await jsonExporter.purgeOldDataIfNeeded()
+        }
     }
 }
