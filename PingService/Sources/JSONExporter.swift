@@ -57,6 +57,8 @@ public class JSONExporter {
     }
 
     func export(_ statsResponseModel: StatsResponseModel) {
+        purgeOldDataIfNeeded()
+
         let directoryPath = getDirectoryPath()
         let timestamp = getTimestamp()
         print(directoryPath, timestamp)
@@ -81,6 +83,26 @@ public class JSONExporter {
             }
             catch {
                 print(error)
+            }
+        }
+    }
+
+    func purgeOldDataIfNeeded() {
+        let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: Date())!
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = TimeZone.current
+        // Get the day
+        dateFormatter.dateFormat = "dd"
+        let day = Int(dateFormatter.string(from: twoDaysAgo))!
+        print("Trying to purge old data :\(twoDaysAgo) \(day)")
+        Task {
+            try await FileSystem.shared.withDirectoryHandle(atPath: FilePath(filePath)) { directory in
+                for try await entry in directory.listContents() {
+                    if entry.type == .directory && day >= Int(entry.name.string)! {
+                        print("removing old directory at path \(entry.path)")
+                        try await FileSystem.shared.removeItem(at: entry.path)
+                    }
+                }
             }
         }
     }

@@ -72,5 +72,6 @@ public class PingServer {
 
     func purgeOldStatistics() {
         print("Automatic purging old statistics started ...")
+        jsonExporter.purgeOldDataIfNeeded()
     }
 }
