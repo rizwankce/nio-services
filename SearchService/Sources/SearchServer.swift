@@ -18,10 +18,10 @@ public class SearchServer {
     let port: Int
     let polisUrl: String
 
-    init(host: String, port: Int, polisUrl: String) {
+    init(host: String, port: Int, polisUrl: String?) {
         self.host = host
         self.port = port
-        self.polisUrl = polisUrl
+        self.polisUrl = polisUrl ?? PolisConstants.testBigBangPolisDomain
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1) // threads can be System.coreCount
         let searchChannelHandler = SearchChannelHandler()
         self.serverBootstrap = ServerBootstrap(group: eventLoopGroup)
