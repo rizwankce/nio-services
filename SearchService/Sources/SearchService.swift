@@ -22,10 +22,13 @@ struct SearchService: ParsableCommand {
     @Option(name: .shortAndLong, help: "URL to download polis data from")
     var url: String?
 
+    @Option(name: .long, help: "**For testing purpose only.** Will use the path as source for polis resource")
+    var polisStaticDataFilePath: String?
+
     mutating func run() throws {
         let serverHost = host ?? "localhost"
         let serverPort = port ?? 2347
-        let server = SearchServer(host: serverHost, port: serverPort, polisUrl: url)
+        let server = SearchServer(host: serverHost, port: serverPort, polisUrl: url, polisDatFilePath: polisStaticDataFilePath)
         try server.run()
     }
 }
