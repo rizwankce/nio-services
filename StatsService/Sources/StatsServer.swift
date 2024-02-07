@@ -18,11 +18,11 @@ public class StatsServer {
     let clientPort: Int
     let host: String
     let port: Int
-    let delay: Int
+    let delay: Int64
     var pingResponseTime: PingResponseTime
 
     init(delay: Int, clientHost: String, clientPort: Int, host: String, port: Int) {
-        self.delay = delay
+        self.delay = Int64(delay)
         self.pingResponseTime = PingResponseTime()
         let pingChannelHandler = PingChannelHandler(delay: delay, pingResponseTime: pingResponseTime)
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1) // threads can be System.coreCount
@@ -59,27 +59,39 @@ public class StatsServer {
         }
         pingResponseTime.startTime = Date()
 
-        let clientChannel = try clientBootstrap.connect(host: clientHost, port: clientPort).wait()
-        print("Client started and connecting to \(clientChannel.localAddress!)")
-
-        let requestHead = HTTPRequestHead(version: .http1_1, method: .GET, uri: "/ping")
-
-//        I don't know why `scheduleRepeatedTask` is not working ...
-//        clientChannel.eventLoop.next().scheduleRepeatedTask(initialDelay: .zero, delay: .seconds(Int64(delay))) { task in
-//            clientChannel.write(HTTPClientRequestPart.head(requestHead), promise: nil)
-//            _ = clientChannel.writeAndFlush(HTTPClientRequestPart.end(nil))
-//        }
-
-        #warning("scheduling task with delay not triggering the request.. :(")
-        clientChannel.write(HTTPClientRequestPart.head(requestHead), promise: nil)
-        _ = clientChannel.writeAndFlush(HTTPClientRequestPart.end(nil))
-
-        //try clientChannel.closeFuture.wait()
+        eventLoopGroup.next().scheduleRepeatedTask(initialDelay: .seconds(0), delay: .milliseconds(delay)) { _ in
+            self.bootstrapPingRequest()
+        }
 
         let serverChannel = try serverBootstrap.bind(host: host, port: port).wait()
         print("Server started and listening on \(serverChannel.localAddress!)")
 
         try serverChannel.closeFuture.wait()
         print("Server closed")
+    }
+
+    func bootstrapPingRequest() {
+        clientBootstrap.connect(host: clientHost, port: clientPort).whenComplete { result in
+            switch result {
+                case .success(let success):
+                    print("Client started and connecting to \(success.localAddress!)")
+                    self.sendPingRequest(success).whenComplete { result in
+                        switch result {
+                        case .success:
+                            print("Request was successful")
+                        case .failure(let error):
+                            print("Request failed with error: \(error)")
+                        }
+                    }
+                case .failure(let failure):
+                    print("Client connection failed with error: \(failure)")
+            }
+        }
+    }
+
+    func sendPingRequest(_ clientChannel: Channel) -> EventLoopFuture<Void> {
+        let requestHead = HTTPRequestHead(version: .http1_1, method: .GET, uri: "/ping")
+        clientChannel.write(HTTPClientRequestPart.head(requestHead), promise: nil)
+        return clientChannel.writeAndFlush(HTTPClientRequestPart.end(nil))
     }
 }
