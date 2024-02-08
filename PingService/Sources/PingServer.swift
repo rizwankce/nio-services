@@ -1,6 +1,6 @@
 //
 //  PingServer.swift
-//  
+//
 //
 //  Created by Rizwan on 05/02/24.
 //
@@ -13,18 +13,42 @@ import NIOHTTP1
 import NIOFoundationCompat
 import NIOFileSystem
 
+/// A class representing a Ping server.
 public class PingServer {
+    /// The logger used for logging server events.
     let logger = Logger(label: "ping-service-nio")
+    
+    /// The host address of the server.
     let host: String
+    
+    /// The port number on which the server listens.
     let port: Int
+    
+    /// The event loop group used by the server.
     let eventLoopGroup: MultiThreadedEventLoopGroup
+    
+    /// The server bootstrap used to configure the server.
     let serverBootstrap: ServerBootstrap
+    
+    /// The size of the window used for tracking ping response times.
     let windowSize: Int
+    
+    /// The object responsible for tracking ping response times.
     let pingResponseTime: PingResponseTime
+    
+    /// The file path where statistics data is stored.
     let filePath: String
+    
+    /// The object responsible for processing and exporting statistics data in JSON format.
     let jsonExporter: StatsDataProcessor
-
-    init(host: String, port: Int, windowSize: Int, filePath: String) {
+    
+    /// Initializes a new instance of the `PingServer` class.
+    /// - Parameters:
+    ///   - host: The host address of the server.
+    ///   - port: The port number on which the server listens.
+    ///   - windowSize: The size of the window used for tracking ping response times.
+    ///   - filePath: The file path where statistics data is stored.
+    public init(host: String, port: Int, windowSize: Int, filePath: String) {
         self.host = host
         self.port = port
         self.windowSize = windowSize
@@ -46,34 +70,38 @@ public class PingServer {
             .childChannelOption(ChannelOptions.maxMessagesPerRead, value: 16)
             .childChannelOption(ChannelOptions.recvAllocator, value: AdaptiveRecvByteBufferAllocator())
     }
-
-    func run() throws {
+    
+    /// Runs the Ping server.
+    /// - Throws: An error if the server fails to start or encounters an error during execution.
+    public func run() throws {
         defer {
             try! eventLoopGroup.syncShutdownGracefully()
         }
-
+        
         let channel = try serverBootstrap.bind(host: host, port: port).wait()
         logger.info("Server started and listening on \(channel.localAddress!)")
-
+        
         eventLoopGroup.next().scheduleRepeatedTask(initialDelay: .minutes(5), delay: .minutes(5)) { task in
             self.saveStatisticsToFile()
         }
-
+        
         eventLoopGroup.next().scheduleRepeatedTask(initialDelay: .hours(48), delay: .hours(48)) { task in
             self.purgeOldStatistics()
         }
-
+        
         try channel.closeFuture.wait()
         logger.info("Server closed")
     }
-
+    
+    /// Saves the statistics data to a file.
     func saveStatisticsToFile() {
         logger.info("Automatic backup started ...")
         Task{
             try await jsonExporter.export(pingResponseTime.getStatsResponseModel())
         }
     }
-
+    
+    /// Purges old statistics data if needed.
     func purgeOldStatistics() {
         logger.info("Automatic purging old statistics started ...")
         Task {

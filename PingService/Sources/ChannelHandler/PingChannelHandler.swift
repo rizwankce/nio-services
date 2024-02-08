@@ -1,6 +1,6 @@
 //
 //  PingChannelHandler.swift
-//  
+//
 //
 //  Created by Rizwan on 05/02/24.
 //
@@ -10,16 +10,22 @@ import NIOCore
 import NIOPosix
 import NIOHTTP1
 
+/// A channel handler for handling ping requests and generating ping responses.
 public final class PingChannelHandler: ChannelInboundHandler {
     public typealias InboundIn = HTTPServerRequestPart
     public typealias OutboundOut = HTTPServerResponsePart
-
+    
+    /// The `PingResponseTime` instance to track response times.
     private let pingResponseTime: PingResponseTime
-
+    
+    /// Initializes a new instance of `PingChannelHandler`.
+    /// - Parameter pingResponseTime: The `PingResponseTime` instance to track response times.
     init(pingResponseTime: PingResponseTime) {
         self.pingResponseTime = pingResponseTime
     }
-
+    
+    /// Handles the read event when a request is received.
+    /// generates a ping response with a random response time between 20 and 5000 milliseconds.
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let requestPart = self.unwrapInboundIn(data)
         switch requestPart {
@@ -46,18 +52,20 @@ public final class PingChannelHandler: ChannelInboundHandler {
                         context.close(promise: nil)
                     }
                 }
-
+                
             case .body:
                 break
             case .end:
                 break
         }
     }
-
+    
+    /// Handles the read complete event.
     public func channelReadComplete(context: ChannelHandlerContext) {
         context.flush()
     }
-
+    
+    /// Handles errors that occur in the channel pipeline.
     public func errorCaught(context: ChannelHandlerContext, error: Error) {
         print("error: ", error)
         context.close(promise: nil)
