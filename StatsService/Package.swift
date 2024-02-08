@@ -4,6 +4,7 @@
 import PackageDescription
 
 let dependencies: [Target.Dependency] = [
+    .product(name: "Logging", package: "swift-log"),
     .product(name: "ArgumentParser", package: "swift-argument-parser"),
     .product(name: "NIOCore", package: "swift-nio"),
     .product(name: "NIOPosix", package: "swift-nio"),
@@ -15,6 +16,7 @@ let package = Package(
     name: "StatsService",
     platforms: [.macOS(.v13)],
     dependencies: [
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0")
     ],

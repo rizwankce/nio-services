@@ -19,7 +19,6 @@ public class PingResponseTime {
         totalTime += time
         minTime = min(minTime, time)
         maxTime = max(maxTime, time)
-        print("After adding: \(self)")
     }
 
     var averageTime: Double {

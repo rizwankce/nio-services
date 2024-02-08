@@ -6,11 +6,13 @@
 //
 
 import Foundation
+import Logging
 import NIOCore
 import NIOPosix
 import NIOHTTP1
 
 public class StatsServer {
+    let logger = Logger(label: "stats-service-nio")
     let eventLoopGroup: MultiThreadedEventLoopGroup
     let clientBootstrap: ClientBootstrap
     let serverBootstrap: ServerBootstrap
@@ -64,27 +66,27 @@ public class StatsServer {
         }
 
         let serverChannel = try serverBootstrap.bind(host: host, port: port).wait()
-        print("Server started and listening on \(serverChannel.localAddress!)")
+        logger.info("Server started and listening on \(serverChannel.localAddress!)")
 
         try serverChannel.closeFuture.wait()
-        print("Server closed")
+        logger.info("Server closed")
     }
 
     func bootstrapPingRequest() {
         clientBootstrap.connect(host: clientHost, port: clientPort).whenComplete { result in
             switch result {
                 case .success(let success):
-                    print("Client started and connecting to \(success.localAddress!)")
+                    self.logger.info("Client started and connecting to \(success.localAddress!)")
                     self.sendPingRequest(success).whenComplete { result in
                         switch result {
                         case .success:
-                            print("Request was successful")
+                                self.logger.info("Request was successful")
                         case .failure(let error):
-                            print("Request failed with error: \(error)")
+                                self.logger.error("Request failed with error: \(error)")
                         }
                     }
                 case .failure(let failure):
-                    print("Client connection failed with error: \(failure)")
+                    self.logger.error("Client connection failed with error: \(failure)")
             }
         }
     }

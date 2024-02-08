@@ -6,11 +6,13 @@
 //
 
 import Foundation
+import Logging
 import NIOCore
 import NIOPosix
 import NIOHTTP1
 
 public final class PingChannelHandler: ChannelInboundHandler {
+    let logger = Logger(label: "ping-channel-handler-nio")
     public typealias InboundIn = HTTPClientResponsePart
     public typealias OutboundOut = HTTPClientRequestPart
 
@@ -25,34 +27,34 @@ public final class PingChannelHandler: ChannelInboundHandler {
     }
 
     public func channelActive(context: ChannelHandlerContext) {
-        print("Client connected to \(context.remoteAddress!)")
+        logger.info("Client connected to \(context.remoteAddress!)")
         responseStartTime = Date()
     }
 
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        print("client Channel Read")
+        logger.info("client Channel Read")
         let clientResponse = self.unwrapInboundIn(data)
 
         switch clientResponse {
             case .head(let responseHead):
-                print("Received status: \(responseHead)")
+                logger.info("Received status: \(responseHead)")
                 if let startTime = responseStartTime {
                     let responseTime = Date().timeIntervalSince(startTime)
-                    print("Response time: \(responseTime)")
+                    logger.info("Response time: \(responseTime)")
                     responseStartTime = nil
                     pingResponseTime.add(time: responseTime)
                 }
             case .body(let byteBuffer):
                 let string = String(buffer: byteBuffer)
-                print("Received: '\(string)' back from the server")
+                logger.info("Received: '\(string)' back from the server")
             case .end:
-                print("Closing channel.")
+                logger.info("Closing channel.")
                 context.close(promise: nil)
         }
     }
 
     public func errorCaught(context: ChannelHandlerContext, error: Error) {
-        print("error: ", error)
+        logger.info("error: \(error)")
         context.close(promise: nil)
     }
 }
