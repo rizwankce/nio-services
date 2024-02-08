@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Logging
 import NIOCore
 import NIOPosix
 import NIOHTTP1
@@ -20,6 +21,7 @@ public enum PolisDataProviderError: Error, Equatable {
 }
 
 final class PolisDataProvider {
+    let logger = Logger(label: "polis-data-provider-nio")
     var poliseFileResource: PolisFileResourceFinder?
     let filePath: String
 

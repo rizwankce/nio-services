@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Logging
 import NIOCore
 import NIOPosix
 import NIOHTTP1
@@ -21,6 +22,7 @@ public enum PolisDataDownloaderError: Error, Equatable {
 }
 
 final class PolisDataDownloader {
+    let logger = Logger(label: "polis-data-downloader-nio")
     let polisUrl: String
     let filePath: String
     let eventLoopGroup: MultiThreadedEventLoopGroup
@@ -140,15 +142,15 @@ final class PolisDataDownloader {
             switch result {
                 case .success(let response):
                     guard var body = response.body else {
-                        print("No body in response")
+                        self.logger.info("No body in response")
                         return
                     }
 
                     promise.succeed(body)
-                    print("JSON downloaded successfully.")
+                    self.logger.info("JSON downloaded successfully.")
                 case .failure(let error):
                     promise.fail(error)
-                    print("Failed to download JSON: \(error)")
+                    self.logger.info("Failed to download JSON: \(error)")
             }
         }
 
@@ -174,7 +176,7 @@ final class PolisDataDownloader {
         //        }
 
         //        bootstrap.connect(host: "test.polis.observer", port: url.port ?? 80).whenSuccess { channel in
-        //            print("Triggering request to download \(urlString) with path \(url.path), port: \(url.port)")
+        //            logger.info("Triggering request to download \(urlString) with path \(url.path), port: \(url.port)")
         //            var request = HTTPRequestHead(version: .http1_1, method: .GET, uri: "/polis/polis.json")
         //            request.headers.add(name: "Host", value: url.host ?? "")
         //            request.headers.add(name: "Accept", value: "application/json")
@@ -186,7 +188,7 @@ final class PolisDataDownloader {
     }
 
     func createDirectory(path: String) -> EventLoopFuture<Void> {
-        print("Creating directory at path: \(path)")
+        logger.info("Creating directory at path: \(path)")
         let fileIO = NonBlockingFileIO(threadPool: .singleton)
         return fileIO.createDirectory(path: path, withIntermediateDirectories: true, mode: S_IRWXU, eventLoop: eventLoop)
     }
@@ -206,7 +208,7 @@ final class PolisDataDownloader {
     }
 
     func saveJSONFile(path: String, byteBuffer: ByteBuffer) -> EventLoopFuture<Void> {
-        print("Saving JSON file at path: \(path)")
+        logger.info("Saving JSON file at path: \(path)")
         let fileIO = NonBlockingFileIO(threadPool: .singleton)
         let directoryPath = URL(string: path)!.deletingLastPathComponent().absoluteString
 

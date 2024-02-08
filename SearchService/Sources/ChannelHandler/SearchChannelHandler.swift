@@ -6,11 +6,14 @@
 //
 
 import Foundation
+import Logging
 import NIOCore
 import NIOPosix
 import NIOHTTP1
 
 public final class SearchChannelHandler: ChannelInboundHandler {
+    let logger = Logger(label: "search-channel-handler-nio")
+
     public typealias InboundIn = HTTPServerRequestPart
     public typealias OutboundOut = HTTPServerResponsePart
 
@@ -57,7 +60,7 @@ public final class SearchChannelHandler: ChannelInboundHandler {
         let requestPart = self.unwrapInboundIn(data)
         switch requestPart {
             case .head(let request):
-                print("Received URI :\(request.uri)")
+                logger.info("Received URI :\(request.uri)")
                 if request.uri.starts(with: "/api/updateDate") {
                     polisDataProvider.getUpdatedAt(eventLoop: context.pipeline.eventLoop)
                         .whenComplete { [weak self] result in
@@ -91,7 +94,7 @@ public final class SearchChannelHandler: ChannelInboundHandler {
                         }
                         return
                     }
-                    print("Searching for name: \(searchName)")
+                    logger.info("Searching for name: \(searchName)")
                     polisDataProvider.getUniqueIdentifiersFor(faciltiy: searchName, eventLoop: context.pipeline.eventLoop)
                         .whenComplete { [weak self] result in
                             switch result {
@@ -114,7 +117,7 @@ public final class SearchChannelHandler: ChannelInboundHandler {
                         }
                         return
                     }
-                    print("Location for uuid: \(identifier)")
+                    logger.info("Location for uuid: \(identifier)")
                     polisDataProvider.getLocationFor(uniqueIdentifier: identifier, eventLoop: context.pipeline.eventLoop)
                         .whenComplete { [weak self] result in
                             switch result {
@@ -145,7 +148,7 @@ public final class SearchChannelHandler: ChannelInboundHandler {
     }
 
     public func errorCaught(context: ChannelHandlerContext, error: Error) {
-        print("error: ", error)
+        logger.error("error: \(error)")
         context.close(promise: nil)
     }
 

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Logging
 import NIOCore
 import NIOPosix
 import NIOHTTP1
@@ -13,6 +14,7 @@ import NIOFoundationCompat
 import swift_polis
 
 public class SearchServer {
+    let logger = Logger(label: "search-service-nio")
     let eventLoopGroup: MultiThreadedEventLoopGroup
     let serverBootstrap: ServerBootstrap
     let host: String
@@ -49,18 +51,18 @@ public class SearchServer {
         }
 
         let serverChannel = try serverBootstrap.bind(host: host, port: port).wait()
-        print("Server started and listening on \(serverChannel.localAddress!)")
+        logger.info("Server started and listening on \(serverChannel.localAddress!)")
 
         polisDataDownloader.initiateAsyncDownload().whenComplete { result in
             switch result {
                 case .success(let success):
-                    print("POLIS data successfully downloaded")
+                    self.logger.info("POLIS data successfully downloaded")
                 case .failure(let failure):
-                    print("Error in downloading POLIS data: \(failure)")
+                    self.logger.error("Error in downloading POLIS data: \(failure)")
             }
         }
 
         try serverChannel.closeFuture.wait()
-        print("Server closed")
+        logger.info("Server closed")
     }
 }

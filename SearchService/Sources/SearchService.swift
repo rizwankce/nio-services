@@ -2,6 +2,7 @@
 // https://docs.swift.org/swift-book
 
 import ArgumentParser
+import Logging
 import NIOCore
 import NIOPosix
 import NIOHTTP1
