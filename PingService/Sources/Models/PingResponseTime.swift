@@ -17,7 +17,6 @@ public class PingResponseTime {
         allResponseTime.append(time)
         minTime = min(minTime, time)
         maxTime = max(maxTime, time)
-        print(allResponseTime)
     }
 
     var window: [Double] {

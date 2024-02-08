@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Logging
 import NIOCore
 import NIOPosix
 import NIOHTTP1
@@ -13,6 +14,7 @@ import NIOFoundationCompat
 import NIOFileSystem
 
 public class PingServer {
+    let logger = Logger(label: "ping-service-nio")
     let host: String
     let port: Int
     let eventLoopGroup: MultiThreadedEventLoopGroup
@@ -51,7 +53,7 @@ public class PingServer {
         }
 
         let channel = try serverBootstrap.bind(host: host, port: port).wait()
-        print("Server started and listening on \(channel.localAddress!)")
+        logger.info("Server started and listening on \(channel.localAddress!)")
 
         eventLoopGroup.next().scheduleRepeatedTask(initialDelay: .minutes(5), delay: .minutes(5)) { task in
             self.saveStatisticsToFile()
@@ -62,18 +64,18 @@ public class PingServer {
         }
 
         try channel.closeFuture.wait()
-        print("Server closed")
+        logger.info("Server closed")
     }
 
     func saveStatisticsToFile() {
-        print("Automatic backup started ...")
+        logger.info("Automatic backup started ...")
         Task{
             try await jsonExporter.export(pingResponseTime.getStatsResponseModel())
         }
     }
 
     func purgeOldStatistics() {
-        print("Automatic purging old statistics started ...")
+        logger.info("Automatic purging old statistics started ...")
         Task {
             try await jsonExporter.purgeOldDataIfNeeded()
         }

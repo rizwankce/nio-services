@@ -6,10 +6,12 @@
 //
 
 import Foundation
+import Logging
 import NIOFileSystem
 import NIOCore
 
 public class StatsDataProcessor {
+    let logger = Logger(label: "stats-data-processor-nio")
     private let filePath: String
     private let fileSystem: FileSystem = FileSystem.shared
 
@@ -24,7 +26,7 @@ public class StatsDataProcessor {
         let timestamp = getTimestamp()
 
         let path = filePath + directoryPath + "/\(timestamp).json"
-        print("Stats to be saved :\(statsResponseModel) at path : \(path)")
+        logger.info("Stats to be saved :\(statsResponseModel) at path : \(path)")
 
         do {
             if await !isDirectoryExists(atPath: filePath + directoryPath) {
@@ -42,7 +44,7 @@ public class StatsDataProcessor {
             }
         }
         catch {
-            print(error)
+            logger.error("error \(error)")
         }
     }
 
@@ -57,11 +59,11 @@ public class StatsDataProcessor {
         // Get the day
         dateFormatter.dateFormat = "dd"
         let day = Int(dateFormatter.string(from: date))!
-        print("Trying to purge old data :\(date) \(day)")
+        logger.info("Trying to purge old data :\(date) \(day)")
         try await FileSystem.shared.withDirectoryHandle(atPath: FilePath(filePath)) { directory in
             for try await entry in directory.listContents() {
                 if entry.type == .directory && day >= Int(entry.name.string)! {
-                    print("removing old directory at path \(entry.path)")
+                    logger.info("removing old directory at path \(entry.path)")
                     try await FileSystem.shared.removeItem(at: entry.path)
                 }
             }
