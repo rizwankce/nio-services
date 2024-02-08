@@ -19,14 +19,15 @@ public class SearchServer {
     let port: Int
     let polisUrl: String
     let polisDataProvider: PolisDataProvider
+    let polisDataDownloader: PolisDataDownloader
 
-    init(host: String, port: Int, polisUrl: String?, polisDatFilePath: String?) {
+    init(host: String, port: Int, polisUrl: String?, polisRemoteFilePath: String, polisDatFilePath: String?) {
         self.host = host
         self.port = port
         self.polisUrl = polisUrl ?? PolisConstants.testBigBangPolisDomain
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1) // threads can be System.coreCount
-        self.polisDataProvider = PolisDataProvider()
-        self.polisDataProvider.load(with: polisDatFilePath ?? "")
+        self.polisDataProvider = PolisDataProvider(filePath: polisDatFilePath ?? polisRemoteFilePath)
+        self.polisDataDownloader = PolisDataDownloader(polisUrl: self.polisUrl, filePath: polisRemoteFilePath, eventLoopGroup: self.eventLoopGroup)
         let searchChannelHandler = SearchChannelHandler(polisDataProvider: polisDataProvider)
         self.serverBootstrap = ServerBootstrap(group: eventLoopGroup)
             .serverChannelOption(ChannelOptions.backlog, value: 256)
@@ -50,11 +51,9 @@ public class SearchServer {
         let serverChannel = try serverBootstrap.bind(host: host, port: port).wait()
         print("Server started and listening on \(serverChannel.localAddress!)")
 
+        polisDataDownloader.initiateAsyncDownload(eventLoop: eventLoopGroup.next())
+
         try serverChannel.closeFuture.wait()
         print("Server closed")
-    }
-
-    func getPolisData() {
-        
     }
 }

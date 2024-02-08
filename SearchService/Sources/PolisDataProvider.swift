@@ -21,13 +21,11 @@ public enum PolisDataProviderError: Error, Equatable {
 
 final class PolisDataProvider {
     var poliseFileResource: PolisFileResourceFinder?
+    let filePath: String
 
-    init() {
+    init(filePath: String) {
         self.poliseFileResource = nil
-    }
-
-    // TODO: - Need to find better way to handle this 
-    func load(with filePath: String) {
+        self.filePath = filePath
         let url = URL(filePath: filePath)
         let version = PolisConstants.frameworkSupportedImplementation.last!.version
         let polisImplementation = PolisImplementation(dataFormat: .json, apiSupport: .staticData, version: version)
@@ -91,11 +89,26 @@ final class PolisDataProvider {
     }
 
     func getUniqueIdentifiersFor(faciltiy name: String, eventLoop: EventLoop) -> EventLoopFuture<ByteBuffer> {
+        let future = getAllUniqueIdentifiersFor(faciltiy: name, eventLoop: eventLoop)
+        return future.flatMap { ids -> EventLoopFuture<ByteBuffer> in
+            let jsonResponse = [ "uuids" : [ ids ]]
+            var responseBuffer = ByteBufferAllocator().buffer(capacity: 1024)
+            do {
+                try PolisJSONEncoder().encode(jsonResponse, into: &responseBuffer)
+                return eventLoop.makeSucceededFuture(responseBuffer)
+            }
+            catch {
+                return eventLoop.makeFailedFuture(error)
+            }
+        }
+    }
+
+    func getAllUniqueIdentifiersFor(faciltiy name: String? = nil, eventLoop: EventLoop) -> EventLoopFuture<[UUID]> {
         guard let resource = poliseFileResource else {
             return eventLoop.makeFailedFuture(PolisDataProviderError.resourceNotFound)
         }
         let buffer = getDataFromFile(resource.observingFacilitiesDirectoryFile(), eventLoop)
-        return buffer.flatMap { buffer -> EventLoopFuture<ByteBuffer> in
+        return buffer.flatMap { buffer -> EventLoopFuture<[UUID]> in
             do {
                 guard let config = try buffer.getJSONDecodable(
                     PolisObservingFacilityDirectory.self,
@@ -105,14 +118,16 @@ final class PolisDataProvider {
                 ) else {
                     return eventLoop.makeFailedFuture(PolisDataProviderError.decodeFailure)
                 }
-                let jsonResponse = [
-                    "uuids" : [
-                        config.observingFacilityReferences.filter { $0.identity.name.contains(name) }.map { $0.id }
-                    ]
-                ]
-                var responseBuffer = ByteBufferAllocator().buffer(capacity: 1024)
-                try PolisJSONEncoder().encode(jsonResponse, into: &responseBuffer)
-                return eventLoop.makeSucceededFuture(responseBuffer)
+                if let name = name {
+                    let filteredIds = config.observingFacilityReferences
+                        .filter { $0.identity.name.contains(name) }
+                        .map { $0.id }
+                    return eventLoop.makeSucceededFuture(filteredIds)
+                }
+                else {
+                    let ids = config.observingFacilityReferences.map { $0.id }
+                    return eventLoop.makeSucceededFuture(ids)
+                }
             }
             catch {
                 return eventLoop.makeFailedFuture(error)
