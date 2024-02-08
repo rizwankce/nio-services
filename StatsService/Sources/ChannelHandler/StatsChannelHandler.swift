@@ -1,6 +1,6 @@
 //
 //  StatesChannelHandler.swift
-//  
+//
 //
 //  Created by Rizwan on 05/02/24.
 //
@@ -11,16 +11,20 @@ import NIOPosix
 import NIOHTTP1
 import NIOFoundationCompat
 
+/// A class representing the channel handler for the stats server.
 public final class StatesChannelHandler: ChannelInboundHandler {
     public typealias InboundIn = HTTPServerRequestPart
     public typealias OutboundOut = HTTPServerResponsePart
-
+    
+    /// The `PingResponseTime` instance to track response times.
     private var pingResponseTime: PingResponseTime
-
+    
+    /// Initializes a new instance of `StatesChannelHandler`.
     init(pingResponseTime: PingResponseTime) {
         self.pingResponseTime = pingResponseTime
     }
-
+    
+    /// accepts /stats requests and returns the response time statistics.
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let requestPart = self.unwrapInboundIn(data)
         switch requestPart {
@@ -59,18 +63,20 @@ public final class StatesChannelHandler: ChannelInboundHandler {
                         context.close(promise: nil)
                     }
                 }
-
+                
             case .body:
                 break
             case .end:
                 break
         }
     }
-
+    
+    /// handle the read complete event.
     public func channelReadComplete(context: ChannelHandlerContext) {
         context.flush()
     }
-
+    
+    /// handle errors that occur in the channel pipeline.
     public func errorCaught(context: ChannelHandlerContext, error: Error) {
         print("error: ", error)
         context.close(promise: nil)
