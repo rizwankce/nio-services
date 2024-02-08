@@ -51,7 +51,14 @@ public class SearchServer {
         let serverChannel = try serverBootstrap.bind(host: host, port: port).wait()
         print("Server started and listening on \(serverChannel.localAddress!)")
 
-        polisDataDownloader.initiateAsyncDownload(eventLoop: eventLoopGroup.next())
+        polisDataDownloader.initiateAsyncDownload().whenComplete { result in
+            switch result {
+                case .success(let success):
+                    print("POLIS data successfully downloaded")
+                case .failure(let failure):
+                    print("Error in downloading POLIS data: \(failure)")
+            }
+        }
 
         try serverChannel.closeFuture.wait()
         print("Server closed")

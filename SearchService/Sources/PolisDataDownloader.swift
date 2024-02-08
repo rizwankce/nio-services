@@ -18,20 +18,14 @@ import AsyncHTTPClient
 public enum PolisDataDownloaderError: Error, Equatable {
     case resourceNotFound
     case failedToDownload
-    case decodeFailure
-    case missingObservingFacility
 }
-
-/*
- WHOLE FILE IS WORK IN PROGRESS. NEED TO REFINE A LOT
- */
 
 final class PolisDataDownloader {
     let polisUrl: String
     let filePath: String
     let eventLoopGroup: MultiThreadedEventLoopGroup
+    let eventLoop: EventLoop
     let polisRemoteResource: PolisRemoteResourceFinder?
-    let polisStaticResource: PolisStaticResourceFinder?
     let polisFileResource: PolisFileResourceFinder?
     let polisVersion: String
     let polisDataProvider: PolisDataProvider
@@ -40,6 +34,7 @@ final class PolisDataDownloader {
         self.polisUrl = polisUrl
         self.filePath = filePath
         self.eventLoopGroup = eventLoopGroup
+        self.eventLoop = eventLoopGroup.next()
         let version = PolisConstants.frameworkSupportedImplementation.last!.version
         self.polisVersion = version.description
         let polisImplementation = PolisImplementation(dataFormat: .json, apiSupport: .staticData, version: version)
@@ -52,109 +47,85 @@ final class PolisDataDownloader {
             self.polisRemoteResource = nil
             self.polisFileResource = nil
         }
-        self.polisStaticResource = try? PolisStaticResourceFinder(supportedImplementation: polisImplementation)
         self.polisDataProvider = PolisDataProvider(filePath: filePath)
     }
 
-    func initiateAsyncDownload(eventLoop: EventLoop) {
-        // TODO: - Refactor to simplify this
-        // may be something to do with chaining the EventLoops
-        createAllDefaultDirectory(eventLoop: eventLoop)
-            .whenSuccess {
-                self.downloadConfigurationFile(eventLoop: eventLoop)
-                    .whenSuccess { _ in
-                        self.downloadDirectoryFile(eventLoop: eventLoop)
-                            .whenSuccess { _ in
-                                self.downloadObservingFacilitiesFile(eventLoop: eventLoop)
-                                    .whenSuccess { _ in
-                                        self.createAllObservingFacilitiesDirectoryAndFile(eventLoop: eventLoop)
-                                            .whenComplete { result in
-                                                print(result)
-                                            }
-                                    }
-                            }
-                    }
+    func initiateAsyncDownload() -> EventLoopFuture<Void> {
+        downloadConfigurationFile().flatMap {
+            self.downloadDirectoryFile().flatMap {
+                self.downloadObservingFacilitiesFile().flatMap {
+                    self.downloadAllObservingFacilitiesFile()
+                }
             }
+        }
     }
 
-    func createAllDefaultDirectory(eventLoop: EventLoop) -> EventLoopFuture<Void> {
-        let root = polisFileResource!.observingFacilitiesFolder()
-        return createDirectory(path: root, eventLoop: eventLoop)
-    }
-
-    func createAllObservingFacilitiesDirectoryAndFile(eventLoop: EventLoop) -> EventLoopFuture<Void> {
+    func downloadAllObservingFacilitiesFile() -> EventLoopFuture<Void> {
         guard let polisRemoteResource = polisRemoteResource else {
             return eventLoop.makeFailedFuture(PolisDataDownloaderError.resourceNotFound)
         }
 
         return polisDataProvider.getAllUniqueIdentifiersFor(eventLoop: eventLoop).flatMap { ids -> EventLoopFuture<Void> in
-            let createDirectoryFutures = ids.map { id -> EventLoopFuture<Void> in
-                let path = self.polisFileResource!.observingFacilityFolder(observingFacilityID: id)
-                return self.createDirectory(path: path, eventLoop: eventLoop)
-            }
-            
-            return EventLoopFuture.whenAllSucceed(createDirectoryFutures, on: eventLoop).flatMap { _ -> EventLoopFuture<Void> in
                 let createFilesFutures = ids.map { id -> EventLoopFuture<Void> in
                     let url = polisRemoteResource.observingFacilityURL(observingFacilityID: id)
                     let path = self.polisFileResource!.observingFacilityFile(observingFacilityID: id)
-                    return self.downloadPolisFile(from: url, to: path, eventLoop: eventLoop)
+                    return self.downloadPolisFile(from: url, to: path)
                 }
 
-                return EventLoopFuture.whenAllSucceed(createFilesFutures, on: eventLoop).flatMap {_ in
+                return EventLoopFuture.whenAllSucceed(createFilesFutures, on: self.eventLoop).flatMap {_ in
                     let createLocationFilesFutures = ids.map { id -> EventLoopFuture<Void> in
-                        return self.polisDataProvider.getLocationIDFor(facility: id, eventLoop: eventLoop)
+                        return self.polisDataProvider.getLocationIDFor(facility: id, eventLoop: self.eventLoop)
                             .flatMap { locationID -> EventLoopFuture<Void> in
                                 let url = polisRemoteResource.observingDataURL(withID: locationID, observingFacilityID: id)
                                 let path = self.polisFileResource!.observingDataFile(withID: locationID, observingFacilityID: id)
-                                return self.downloadPolisFile(from: url, to: path, eventLoop: eventLoop)
+                                return self.downloadPolisFile(from: url, to: path)
                             }
                     }
-                    return EventLoopFuture.whenAllSucceed(createLocationFilesFutures, on: eventLoop).flatMap { _ -> EventLoopFuture<Void> in
-                        eventLoop.makeSucceededVoidFuture()
+                    return EventLoopFuture.whenAllSucceed(createLocationFilesFutures, on: self.eventLoop).flatMap { _ -> EventLoopFuture<Void> in
+                        self.eventLoop.makeSucceededVoidFuture()
                     }
                 }
             }
-        }
     }
 
-    func downloadConfigurationFile(eventLoop: EventLoop) -> EventLoopFuture<Void> {
+    func downloadConfigurationFile() -> EventLoopFuture<Void> {
         guard let polisRemoteResource = polisRemoteResource else {
             return eventLoop.makeFailedFuture(PolisDataDownloaderError.resourceNotFound)
         }
 
         let url = polisRemoteResource.configurationURL()
         let path = polisFileResource!.configurationFile()
-        return downloadPolisFile(from: url, to: path, eventLoop: eventLoop)
+        return downloadPolisFile(from: url, to: path)
     }
 
-    func downloadDirectoryFile(eventLoop: EventLoop) -> EventLoopFuture<Void> {
+    func downloadDirectoryFile() -> EventLoopFuture<Void> {
         guard let polisRemoteResource = polisRemoteResource else {
             return eventLoop.makeFailedFuture(PolisDataDownloaderError.resourceNotFound)
         }
 
         let url = polisRemoteResource.polisProviderDirectoryURL()
         let path = polisFileResource!.polisProviderDirectoryFile()
-        return downloadPolisFile(from: url, to: path, eventLoop: eventLoop)
+        return downloadPolisFile(from: url, to: path)
     }
 
-    func downloadObservingFacilitiesFile(eventLoop: EventLoop) -> EventLoopFuture<Void> {
+    func downloadObservingFacilitiesFile() -> EventLoopFuture<Void> {
         guard let polisRemoteResource = polisRemoteResource else {
             return eventLoop.makeFailedFuture(PolisDataDownloaderError.resourceNotFound)
         }
 
         let url = polisRemoteResource.observingFacilitiesDirectoryURL()
         let path = polisFileResource!.observingFacilitiesDirectoryFile()
-        return downloadPolisFile(from: url, to: path, eventLoop: eventLoop)
+        return downloadPolisFile(from: url, to: path)
     }
 
-    func downloadPolisFile(from: String, to path: String, eventLoop: EventLoop) -> EventLoopFuture<Void> {
-        return downloadJSON(urlString: from, eventLoop: eventLoop)
+    func downloadPolisFile(from: String, to path: String) -> EventLoopFuture<Void> {
+        return downloadJSON(urlString: from)
             .flatMap { buffer -> EventLoopFuture<Void> in
-                self.saveJSONFile(path: path, byteBuffer: buffer, eventLoop: eventLoop)
+                self.saveJSONFile(path: path, byteBuffer: buffer)
             }
     }
 
-    func downloadJSON(urlString: String, eventLoop: EventLoop) -> EventLoopFuture<ByteBuffer> {
+    func downloadJSON(urlString: String) -> EventLoopFuture<ByteBuffer> {
         guard let url = URL(string: urlString),
               let host = url.host else {
             return eventLoop.makeFailedFuture(URLError(.badURL))
@@ -214,32 +185,50 @@ final class PolisDataDownloader {
         return promise.futureResult
     }
 
-    func createDirectory(path: String, eventLoop: EventLoop) -> EventLoopFuture<Void> {
+    func createDirectory(path: String) -> EventLoopFuture<Void> {
         print("Creating directory at path: \(path)")
         let fileIO = NonBlockingFileIO(threadPool: .singleton)
         return fileIO.createDirectory(path: path, withIntermediateDirectories: true, mode: S_IRWXU, eventLoop: eventLoop)
     }
 
-    func saveJSONFile(path: String, byteBuffer: ByteBuffer, eventLoop: EventLoop) -> EventLoopFuture<Void> {
-        print("Saving JSON file at path: \(path)")
+    func isDirectoryExists(path: String) -> EventLoopFuture<Void> {
         let fileIO = NonBlockingFileIO(threadPool: .singleton)
-        do {
-            FileManager.default.createFile(atPath: path, contents: nil)
-            let fileHandle = try NIOFileHandle(path: path, mode: .write)
-            let writeFuture = fileIO.write(fileHandle: fileHandle, buffer: byteBuffer, eventLoop: eventLoop)
-
-            return writeFuture.always {_ in
+        return fileIO.openFile(path: path, eventLoop: eventLoop)
+            .flatMap { result -> EventLoopFuture<Void> in
                 do {
-                    try fileHandle.close()
+                    try result.0.close()
+                    return self.eventLoop.makeSucceededVoidFuture()
                 }
                 catch {
-                    print(error)
+                    return self.eventLoop.makeFailedFuture(error)
                 }
             }
-        }
-        catch {
-            return eventLoop.makeFailedFuture(error)
-        }
+    }
+
+    func saveJSONFile(path: String, byteBuffer: ByteBuffer) -> EventLoopFuture<Void> {
+        print("Saving JSON file at path: \(path)")
+        let fileIO = NonBlockingFileIO(threadPool: .singleton)
+        let directoryPath = URL(string: path)!.deletingLastPathComponent().absoluteString
+
+        let writeFuture = isDirectoryExists(path: path)
+            .flatMapError { _ -> EventLoopFuture<Void> in
+                self.createDirectory(path: directoryPath)
+            }
+            .flatMap { _ -> EventLoopFuture<NIOFileHandle> in
+                fileIO.openFile(path: path, mode: .write, flags: .allowFileCreation(), eventLoop: self.eventLoop)
+            }
+            .flatMap { fileHandle -> EventLoopFuture<Void> in
+                fileIO.write(fileHandle: fileHandle, buffer: byteBuffer, eventLoop: self.eventLoop)
+                    .always { _ in
+                        do {
+                            try fileHandle.close()
+                        }
+                        catch {
+
+                        }
+                    }
+            }
+        return writeFuture
     }
 }
 
