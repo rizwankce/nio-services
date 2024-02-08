@@ -11,18 +11,27 @@ import NIOCore
 import NIOPosix
 import NIOHTTP1
 
+/// A channel handler for handling search requests.
+///
+/// This class is responsible for processing incoming HTTP server request parts and generating HTTP server response parts.
+/// It uses a `PolisDataProvider` to retrieve data for processing search requests.
 public final class SearchChannelHandler: ChannelInboundHandler {
+    /// The logger for the `SearchChannelHandler`.
     let logger = Logger(label: "search-channel-handler-nio")
-
+    
     public typealias InboundIn = HTTPServerRequestPart
     public typealias OutboundOut = HTTPServerResponsePart
-
+    
+    /// The data provider for Polis data.
     private let polisDataProvider: PolisDataProvider
-
+    
+    /// initializes a new instance of `SearchChannelHandler` with the specified `PolisDataProvider`.
+    /// - Parameter polisDataProvider: The data provider for Polis data.
     init(polisDataProvider: PolisDataProvider) {
         self.polisDataProvider = polisDataProvider
     }
-
+    
+    /// Handles the error by returning an internal server error response.
     func handleError(error: Error, context: ChannelHandlerContext) {
         let head = HTTPServerResponsePart.head(HTTPResponseHead(version: .http1_1, status: .internalServerError))
         var body = context.channel.allocator.buffer(capacity: 128)
@@ -34,8 +43,8 @@ public final class SearchChannelHandler: ChannelInboundHandler {
             context.close(promise: nil)
         }
     }
-
-
+    
+    /// handles the response by writing the response to the context and closing the channel.
     func handleResponse(buffer: ByteBuffer, context: ChannelHandlerContext) {
         var headers = HTTPHeaders()
         headers.add(name: "Content-Type", value: "application/json")
@@ -48,14 +57,13 @@ public final class SearchChannelHandler: ChannelInboundHandler {
             context.close(promise: nil)
         }
     }
-
-    /*
-     - `updateDate` - returns the last update date of the data set
-     - `numberOfObservingFacilities` - returns the number of facilities in the current data set
-     - `search?name=xxx` - returns the UUIDs of all facilities with a name containing the search criteria.
-     - `location?uuid=UUID` - returns the longitude and latitude (as Double values) of a facility with a given UUID.
-     */
-
+    
+    /// handles the read event and processes the request.
+    /// support the following requests:
+    /// - `updateDate` - returns the last update date of the data set
+    /// - `numberOfObservingFacilities` - returns the number of facilities in the current data set
+    /// - `search?name=xxx` - returns the UUIDs of all facilities with a name containing the search criteria.
+    /// - `location?uuid=UUID` - returns the longitude and latitude (as Double values) of a facility with a given UUID.
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let requestPart = self.unwrapInboundIn(data)
         switch requestPart {
@@ -142,16 +150,21 @@ public final class SearchChannelHandler: ChannelInboundHandler {
                 break
         }
     }
-
+    
+    /// handles the read complete event.
     public func channelReadComplete(context: ChannelHandlerContext) {
         context.flush()
     }
-
+    
+    /// handles the error event.
     public func errorCaught(context: ChannelHandlerContext, error: Error) {
         logger.error("error: \(error)")
         context.close(promise: nil)
     }
-
+    
+    /// handles the active channel event.
+    /// - Parameter uri: The URI of the request.
+    /// - Returns: a dictionary of query parameters.
     private func getQueryParameters(from uri: String) -> [String: String] {
         let queryParameters = uri.split(separator: "?").dropFirst()
         let parameters = queryParameters.reduce(into: [String: String]()) { result, query in
