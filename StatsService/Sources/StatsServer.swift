@@ -53,7 +53,7 @@ public class StatsServer {
     init(delay: Int, clientHost: String, clientPort: Int, host: String, port: Int) {
         self.delay = Int64(delay)
         self.pingResponseTime = PingResponseTime()
-        let pingChannelHandler = PingChannelHandler(delay: delay, pingResponseTime: pingResponseTime)
+        let pingChannelHandler = PingChannelHandler(pingResponseTime: pingResponseTime)
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1) // threads can be System.coreCount
         self.clientBootstrap = ClientBootstrap(group: eventLoopGroup)
             .channelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)

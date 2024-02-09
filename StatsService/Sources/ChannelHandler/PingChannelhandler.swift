@@ -19,10 +19,7 @@ public final class PingChannelHandler: ChannelInboundHandler {
     
     public typealias InboundIn = HTTPClientResponsePart
     public typealias OutboundOut = HTTPClientRequestPart
-    
-    /// The delay in milliseconds before sending a ping request.
-    private let delay: Int
-    
+
     /// The start time of the response.
     private var responseStartTime: Date?
     
@@ -31,17 +28,15 @@ public final class PingChannelHandler: ChannelInboundHandler {
     
     /// Initializes a new instance of `PingChannelHandler`.
     /// - Parameters:
-    ///   - delay: The delay in milliseconds before sending a ping request.
     ///   - pingResponseTime: The object that tracks ping response times.
-    init(delay: Int, pingResponseTime: PingResponseTime) {
-        self.delay = delay
+    init(pingResponseTime: PingResponseTime) {
         self.responseStartTime = nil
         self.pingResponseTime = pingResponseTime
     }
     
     /// handles the active channel event.
     public func channelActive(context: ChannelHandlerContext) {
-        logger.info("Client connected to \(context.remoteAddress!)")
+        logger.info("Client connected to \(String(describing: context.remoteAddress))")
         responseStartTime = Date()
     }
     
