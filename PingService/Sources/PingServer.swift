@@ -53,6 +53,7 @@ public class PingServer {
         self.port = port
         self.windowSize = windowSize
         self.pingResponseTime = PingResponseTime()
+        self.pingResponseTime.windowSize = windowSize
         self.filePath = filePath
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount) // threads can be System.coreCount
         self.jsonExporter = StatsDataProcessor(filePath: filePath, eventLoop: eventLoopGroup.next())
