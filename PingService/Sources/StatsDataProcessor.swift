@@ -96,7 +96,6 @@ public class StatsDataProcessor {
         let fileIO = NonBlockingFileIO(threadPool: .singleton)
         return fileIO.listDirectory(path: filePath, eventLoop: eventLoop).flatMap { entries in
             let removeOperations = entries.compactMap { entry -> EventLoopFuture<Void>? in
-                print(entry)
                 if let entryDay = Int(entry.name), entryDay < day {
                     self.logger.info("Removing file: \(self.filePath + "/" + entry.name)")
                     return fileIO.remove(path: self.filePath + "/" + entry.name, eventLoop: self.eventLoop)
