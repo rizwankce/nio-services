@@ -45,13 +45,12 @@ public class SearchServer {
     ///   - port: The port number on which the server listens.
     ///   - polisUrl: The URL of the Polis service. If `nil`, a default test URL will be used.
     ///   - polisRemoteFilePath: The remote file path for Polis data.
-    ///   - polisDatFilePath: The local file path for Polis data. If `nil`, the remote file path will be used.
-    init(host: String, port: Int, polisUrl: String?, polisRemoteFilePath: String, polisDatFilePath: String?) {
+    init(host: String, port: Int, polisUrl: String?, polisRemoteFilePath: String) {
         self.host = host
         self.port = port
         self.polisUrl = polisUrl ?? PolisConstants.testBigBangPolisDomain
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1) // threads can be System.coreCount
-        self.polisDataProvider = PolisDataProvider(filePath: polisDatFilePath ?? polisRemoteFilePath)
+        self.polisDataProvider = PolisDataProvider(filePath: polisRemoteFilePath)
         self.polisDataDownloader = PolisDataDownloader(polisUrl: self.polisUrl, filePath: polisRemoteFilePath, eventLoopGroup: self.eventLoopGroup)
         let searchChannelHandler = SearchChannelHandler(polisDataProvider: polisDataProvider)
         self.serverBootstrap = ServerBootstrap(group: eventLoopGroup)

@@ -50,8 +50,7 @@ swift run SearchService --ip-address 127.0.0.1 --port 2345 # starts the server w
 ### Usage
 
 ```bash
-search-service [--verbose] [--host <host>] [--port <port>] [--url <url>] --polis-remote-data-file-path <polis-remote-data-file-path> [--polis-static-data-file-path <polis-static-data-file-path>]
-
+search-service [--verbose] [--host <host>] [--port <port>] [--url <url>] --polis-remote-data-file-path <polis-remote-data-file-path>
 OPTIONS:
   -v, --verbose           Print status updates while server running.
   -h, --host <host>       Host to bind
@@ -59,8 +58,6 @@ OPTIONS:
   -u, --url <url>         URL to download polis data from
   --polis-remote-data-file-path <polis-remote-data-file-path>
                           File Path to store the copied polis data
-  --polis-static-data-file-path <polis-static-data-file-path>
-                          **For testing purpose only.** Will use the path as source for polis resource
   -h, --help              Show help information.
 ```
 

@@ -67,7 +67,7 @@ final class PolisDataProvider {
                     return eventLoop.makeFailedFuture(PolisDataProviderError.decodeFailure)
                 }
                 let jsonResponse = [
-                    "updatedAt" : config.lastUpdate
+                    "updatedDate" : config.lastUpdate
                 ]
                 var responseBuffer = ByteBufferAllocator().buffer(capacity: 1024)
                 try PolisJSONEncoder().encode(jsonResponse, into: &responseBuffer)

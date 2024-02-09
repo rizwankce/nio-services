@@ -36,11 +36,7 @@ struct SearchService: ParsableCommand {
     /// The file path to store the copied polis data.
     @Option(name: .long, help: "File Path to store the copied polis data")
     var polisRemoteDataFilePath: String
-    
-    /// The file path to use as the source for polis resource (for testing purpose only).
-    @Option(name: .long, help: "**For testing purpose only.** Will use the path as source for polis resource")
-    var polisStaticDataFilePath: String?
-    
+
     /// Runs the Search Service.
     ///
     /// This method is called when the Search Service command-line tool is executed.
@@ -48,7 +44,7 @@ struct SearchService: ParsableCommand {
     mutating func run() throws {
         let serverHost = host ?? "localhost"
         let serverPort = port ?? 2347
-        let server = SearchServer(host: serverHost, port: serverPort, polisUrl: url, polisRemoteFilePath: polisRemoteDataFilePath, polisDatFilePath: polisStaticDataFilePath)
+        let server = SearchServer(host: serverHost, port: serverPort, polisUrl: url, polisRemoteFilePath: polisRemoteDataFilePath)
         try server.run()
     }
 }
