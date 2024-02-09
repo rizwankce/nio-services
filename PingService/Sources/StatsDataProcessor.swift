@@ -9,6 +9,7 @@ import Foundation
 import Logging
 import NIOFileSystem
 import NIOCore
+import NIOPosix
 
 /// A class that processes and exports statistics data.
 public class StatsDataProcessor {
@@ -18,70 +19,92 @@ public class StatsDataProcessor {
     /// The file path where the statistics data will be exported.
     private let filePath: String
     
+    private let eventLoop: EventLoop
+    
     /// The file system used for file operations.
     private let fileSystem: FileSystem = FileSystem.shared
     
     /// Initializes a `StatsDataProcessor` instance with the given file path.
     /// - Parameter filePath: The file path where the statistics data will be exported.
-    public init(filePath: String) {
+    public init(filePath: String, eventLoop: EventLoop) {
         self.filePath = filePath
+        self.eventLoop = eventLoop
     }
     
-    /// Exports the given `StatsResponseModel` asynchronously.
-    /// - Parameters:
-    ///   - statsResponseModel: The `StatsResponseModel` to be exported.
-    /// - Throws: An error if the export operation fails.
-    public func export(_ statsResponseModel: StatsResponseModel) async throws {
-        try await purgeOldDataIfNeeded()
-        
+    /// Exports the given statistics response model to a JSON file.
+    /// - Parameter statsResponseModel: An `StatsResponseModel` instance to be exported.
+    /// - Returns: An event loop future that resolves to `Void` when the statistics data is exported.
+    public func export(_ statsResponseModel: StatsResponseModel) -> EventLoopFuture<Void> {
         let directoryPath = getDirectoryPath()
         let timestamp = getTimestamp()
         
         let path = filePath + directoryPath + "/\(timestamp).json"
+        let fileIO = NonBlockingFileIO(threadPool: .singleton)
+        
         logger.info("Stats to be saved :\(statsResponseModel) at path : \(path)")
         
+        var buffer: ByteBuffer =  ByteBufferAllocator().buffer(capacity: 1024)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        
         do {
-            if await !isDirectoryExists(atPath: filePath + directoryPath) {
-                try await FileSystem.shared.createDirectory(at: FilePath(filePath + directoryPath), withIntermediateDirectories: true)
-            }
-            try await FileSystem.shared.withFileHandle(
-                forWritingAt:  FilePath(path),
-                options: .newFile(replaceExisting: true)
-            ) { file in
-                var buffer: ByteBuffer =  ByteBufferAllocator().buffer(capacity: 1024)
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = .prettyPrinted
-                try JSONEncoder().encode(statsResponseModel, into: &buffer)
-                try await file.write(contentsOf: buffer.readableBytesView, toAbsoluteOffset: 0)
-            }
+            try JSONEncoder().encode(statsResponseModel, into: &buffer)
         }
         catch {
-            logger.error("error \(error)")
+            return eventLoop.makeFailedFuture(error)
+        }
+        
+        return isDirectoryExists(path: filePath + directoryPath).flatMapError { _ in
+            self.createDirectory(path: self.filePath + directoryPath)
+        }.flatMap { _ -> EventLoopFuture<NIOFileHandle> in
+            fileIO.openFile(path: path, mode: .write, flags: .allowFileCreation(), eventLoop: self.eventLoop)
+        }
+        .flatMap { fileHandle -> EventLoopFuture<Void> in
+            fileIO.write(fileHandle: fileHandle, buffer: buffer, eventLoop: self.eventLoop)
+                .always { _ in
+                    do {
+                        try fileHandle.close()
+                    }
+                    catch {
+                        self.logger.info("Error: \(error)")
+                    }
+                }
+        }
+        .flatMap { fileHandle -> EventLoopFuture<Void> in
+            self.purgeOldDataIfNeeded()
         }
     }
     
-    /// Purges old data if needed. Data older than two days will be removed.
-    /// - Throws: An error if the purge operation fails.
-    public func purgeOldDataIfNeeded() async throws {
+    /// Purges the old data if needed.
+    /// - Returns: An event loop future that resolves to `Void` when the old data is purged.
+    public func purgeOldDataIfNeeded() -> EventLoopFuture<Void> {
         let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: Date())!
-        try await removeDirectoriesOlderThan(twoDaysAgo)
+        return removeDirectoriesOlderThan(twoDaysAgo)
     }
     
-    /// Removes directories older than the given date.
-    private func removeDirectoriesOlderThan(_ date: Date) async throws {
+    /// Removes the directories that are older than the specified date.
+    /// - Parameter date: A date that specifies the threshold for removing the directories.
+    /// - Returns: An event loop future that resolves to `Void` when the directories are removed.
+    private func removeDirectoriesOlderThan(_ date: Date) -> EventLoopFuture<Void> {
         let dateFormatter = DateFormatter()
         dateFormatter.timeZone = TimeZone.current
         // Get the day
         dateFormatter.dateFormat = "dd"
         let day = Int(dateFormatter.string(from: date))!
         logger.info("Trying to purge old data :\(date) \(day)")
-        try await FileSystem.shared.withDirectoryHandle(atPath: FilePath(filePath)) { directory in
-            for try await entry in directory.listContents() {
-                if entry.type == .directory && day >= Int(entry.name.string)! {
-                    logger.info("removing old directory at path \(entry.path)")
-                    try await FileSystem.shared.removeItem(at: entry.path)
+        
+        let fileIO = NonBlockingFileIO(threadPool: .singleton)
+        return fileIO.listDirectory(path: filePath, eventLoop: eventLoop).flatMap { entries in
+            let removeOperations = entries.compactMap { entry -> EventLoopFuture<Void>? in
+                print(entry)
+                if let entryDay = Int(entry.name), entryDay < day {
+                    self.logger.info("Removing file: \(self.filePath + "/" + entry.name)")
+                    return fileIO.remove(path: self.filePath + "/" + entry.name, eventLoop: self.eventLoop)
+                } else {
+                    return nil
                 }
             }
+            return EventLoopFuture.andAllSucceed(removeOperations, on: self.eventLoop)
         }
     }
     
@@ -115,16 +138,27 @@ public class StatsDataProcessor {
         return timestamp
     }
     
-    /// check if the directory exists at the given path.
-    private func isDirectoryExists(atPath path: String) async -> Bool {
-        do {
-            return try await FileSystem.shared.withDirectoryHandle(atPath: FilePath(path)) { directory -> Bool in
-                _ = try await directory.info()
-                return true
+    /// To create a directory at the specified path in non blocking way
+    /// Returns: an event loop future that resolves to `Void` when the directory is created.
+    func createDirectory(path: String) -> EventLoopFuture<Void> {
+        logger.info("Creating directory at path: \(path)")
+        let fileIO = NonBlockingFileIO(threadPool: .singleton)
+        return fileIO.createDirectory(path: path, withIntermediateDirectories: true, mode: S_IRWXU, eventLoop: eventLoop)
+    }
+    
+    /// To check if the directory exists at the specified path in non blocking way
+    /// Returns: an event loop future that resolves to `Void` when the directory exists.
+    func isDirectoryExists(path: String) -> EventLoopFuture<Void> {
+        let fileIO = NonBlockingFileIO(threadPool: .singleton)
+        return fileIO.openFile(path: path, eventLoop: eventLoop)
+            .flatMap { result -> EventLoopFuture<Void> in
+                do {
+                    try result.0.close()
+                    return self.eventLoop.makeSucceededVoidFuture()
+                }
+                catch {
+                    return self.eventLoop.makeFailedFuture(error)
+                }
             }
-        }
-        catch {
-            return false
-        }
     }
 }

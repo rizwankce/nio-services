@@ -54,9 +54,9 @@ public class PingServer {
         self.windowSize = windowSize
         self.pingResponseTime = PingResponseTime()
         self.filePath = filePath
-        self.jsonExporter = StatsDataProcessor(filePath: filePath)
-        let pingChannelHandler = PingChannelHandler(pingResponseTime: pingResponseTime)
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount) // threads can be System.coreCount
+        self.jsonExporter = StatsDataProcessor(filePath: filePath, eventLoop: eventLoopGroup.next())
+        let pingChannelHandler = PingChannelHandler(pingResponseTime: pingResponseTime)
         self.serverBootstrap = ServerBootstrap(group: eventLoopGroup)
             .serverChannelOption(ChannelOptions.backlog, value: 256)
             .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
@@ -96,16 +96,26 @@ public class PingServer {
     /// Saves the statistics data to a file.
     func saveStatisticsToFile() {
         logger.info("Automatic backup started ...")
-        Task{
-            try await jsonExporter.export(pingResponseTime.getStatsResponseModel())
+        jsonExporter.export(pingResponseTime.getStatsResponseModel()).whenComplete { result in
+            switch result {
+                case .success(let success):
+                    self.logger.info("JSON Export Success")
+                case .failure(let failure):
+                    self.logger.info("JSON Export failed: \(failure)")
+            }
         }
     }
     
     /// Purges old statistics data if needed.
     func purgeOldStatistics() {
         logger.info("Automatic purging old statistics started ...")
-        Task {
-            try await jsonExporter.purgeOldDataIfNeeded()
+        jsonExporter.purgeOldDataIfNeeded().whenComplete { result in
+            switch result {
+                case .success(let success):
+                    self.logger.info("Purge old data success")
+                case .failure(let failure):
+                    self.logger.info("Purge old data failed: \(failure)")
+            }
         }
     }
 }

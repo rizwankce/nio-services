@@ -277,7 +277,7 @@ final class PolisDataDownloader {
                             try fileHandle.close()
                         }
                         catch {
-                            
+                            self.logger.error("error :\(error)")
                         }
                     }
             }
