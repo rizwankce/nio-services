@@ -36,7 +36,7 @@ final class SearchChannelHandlerTests: XCTestCase {
         super.tearDown()
     }
 
-    func verifyReponseHead(_ response: HTTPServerResponsePart?) {
+    func verifyResponseHead(_ response: HTTPServerResponsePart?) {
         switch response {
             case .head(let head):
                 XCTAssertEqual(head.status, .ok)
@@ -73,7 +73,7 @@ final class SearchChannelHandlerTests: XCTestCase {
 
         // Then
         let head = try channel.readOutbound(as: HTTPServerResponsePart.self)
-        verifyReponseHead(head)
+        verifyResponseHead(head)
 
         let body = try channel.readOutbound(as: HTTPServerResponsePart.self)
         let response = getResponseBody(body)
@@ -91,7 +91,7 @@ final class SearchChannelHandlerTests: XCTestCase {
 
         // Then
         let head = try channel.readOutbound(as: HTTPServerResponsePart.self)
-        verifyReponseHead(head)
+        verifyResponseHead(head)
 
         let body = try channel.readOutbound(as: HTTPServerResponsePart.self)
         let response = getResponseBody(body)
@@ -109,7 +109,7 @@ final class SearchChannelHandlerTests: XCTestCase {
 
         // Then
         let head = try channel.readOutbound(as: HTTPServerResponsePart.self)
-        verifyReponseHead(head)
+        verifyResponseHead(head)
 
         let body = try channel.readOutbound(as: HTTPServerResponsePart.self)
         let response = getResponseBody(body)
@@ -129,7 +129,7 @@ final class SearchChannelHandlerTests: XCTestCase {
 
         // Then
         let head = try channel.readOutbound(as: HTTPServerResponsePart.self)
-        verifyReponseHead(head)
+        verifyResponseHead(head)
 
         let body = try channel.readOutbound(as: HTTPServerResponsePart.self)
         let response = getResponseBody(body)
