@@ -11,6 +11,7 @@ import NIOHTTP1
 @testable import PingService
 
 final class PingChannelHandlerTests: XCTestCase {
+    var eventLoop: EmbeddedEventLoop!
     var channel: EmbeddedChannel!
     var handler: PingChannelHandler!
     var pingResponseTime: PingResponseTime!
@@ -20,7 +21,8 @@ final class PingChannelHandlerTests: XCTestCase {
         // Given
         pingResponseTime = PingResponseTime()
         handler = PingChannelHandler(pingResponseTime: pingResponseTime)
-        channel = EmbeddedChannel(handler: handler)
+        eventLoop = EmbeddedEventLoop()
+        channel = EmbeddedChannel(handler: handler, loop: eventLoop)
     }
 
     override func tearDown() {
@@ -30,9 +32,8 @@ final class PingChannelHandlerTests: XCTestCase {
         super.tearDown()
     }
 
-    func _testPingRequest() throws {
+    func testPingRequest() throws {
         // When
-        let eventLoop = EmbeddedEventLoop()
         let requestHead = HTTPRequestHead(version: .http1_1, method: .GET, uri: "/ping")
         XCTAssertNoThrow(try channel.writeInbound(HTTPServerRequestPart.head(requestHead)))
 
