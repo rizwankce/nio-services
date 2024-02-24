@@ -27,7 +27,7 @@ public enum PolisDataProviderError: Error, Equatable {
 }
 
 /// A data provider for Polis.
-final class PolisDataProvider {
+public class PolisDataProvider {
     /// The logger for the `PolisDataProvider`.
     let logger = Logger(label: "polis-data-provider-nio")
     
@@ -118,7 +118,7 @@ final class PolisDataProvider {
     func getUniqueIdentifiersFor(faciltiy name: String, eventLoop: EventLoop) -> EventLoopFuture<ByteBuffer> {
         let future = getAllUniqueIdentifiersFor(faciltiy: name, eventLoop: eventLoop)
         return future.flatMap { ids -> EventLoopFuture<ByteBuffer> in
-            let jsonResponse = [ "uuids" : [ ids ]]
+            let jsonResponse = [ "uuids" : ids.map { $0.uuidString }]
             var responseBuffer = ByteBufferAllocator().buffer(capacity: 1024)
             do {
                 try PolisJSONEncoder().encode(jsonResponse, into: &responseBuffer)
