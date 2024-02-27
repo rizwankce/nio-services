@@ -122,8 +122,8 @@ public class StatsDataProcessor {
         let hour = dateFormatter.string(from: now)
         
         // Create the file path
-        let directoryPath = "\(day)/\(hour)"
-        
+        let directoryPath = "/\(day)/\(hour)"
+
         return directoryPath
     }
     
