@@ -1,15 +1,6 @@
 {
   "pins" : [
     {
-      "identity" : "async-http-client",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/swift-server/async-http-client.git",
-      "state" : {
-        "revision" : "291438696abdd48d2a83b52465c176efbd94512b",
-        "version" : "1.20.1"
-      }
-    },
-    {
       "identity" : "scienceetudes",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tuparev/ScienceEtudes",
@@ -25,15 +16,6 @@
       "state" : {
         "branch" : "dev",
         "revision" : "11dbeaf408f6925f148b4dfebc52bb1600269d6e"
-      }
-    },
-    {
-      "identity" : "swift-algorithms",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-algorithms",
-      "state" : {
-        "revision" : "f6919dfc309e7f1b56224378b11e28bab5bccc42",
-        "version" : "1.2.0"
       }
     },
     {
@@ -124,15 +106,6 @@
       "state" : {
         "revision" : "6cbe0ed2b394f21ab0d46b9f0c50c6be964968ce",
         "version" : "1.20.1"
-      }
-    },
-    {
-      "identity" : "swift-numerics",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-numerics.git",
-      "state" : {
-        "revision" : "0a5bc04095a675662cf24757cc0640aa2204253b",
-        "version" : "1.0.2"
       }
     },
     {

@@ -14,7 +14,7 @@ let dependencies: [Target.Dependency] = [
     .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
     .product(name: "NIOHTTPCompression", package: "swift-nio-extras"),
     .product(name: "swift-polis", package: "swift-polis"),
-    .product(name: "AsyncHTTPClient", package: "async-http-client"),
+    .product(name: "NIOSSL", package: "swift-nio-ssl"),
 ]
 
 let package = Package(
@@ -27,7 +27,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio-extras.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-nio-transport-services.git", from: "1.13.0"),
         .package(url: "https://github.com/ASTRO-POLIS/swift-polis.git", branch: "dev"),
-        .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.9.0"),
+        .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.26.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.

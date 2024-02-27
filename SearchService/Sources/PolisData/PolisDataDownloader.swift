@@ -12,9 +12,7 @@ import NIOPosix
 import NIOHTTP1
 import NIOFileSystem
 import NIOFoundationCompat
-import NIOTransportServices
 import swift_polis
-import AsyncHTTPClient
 
 /// An enumeration representing the possible errors that can occur during data downloading in the PolisDataDownloader.
 public enum PolisDataDownloaderError: Error, Equatable {
@@ -173,63 +171,11 @@ final class PolisDataDownloader {
     // To download the JSON from the POLIS remote.
     /// Returns: an event loop future that resolves to `Void` when the download is complete.
     func downloadJSON(urlString: String) -> EventLoopFuture<ByteBuffer> {
-        guard let url = URL(string: urlString),
-              let host = url.host else {
+        guard let url = URL(string: urlString) else {
             return eventLoop.makeFailedFuture(URLError(.badURL))
         }
-        let promise = eventLoop.makePromise(of: ByteBuffer.self)
-        let httpClient = HTTPClient(eventLoopGroup: eventLoopGroup)
-        
-        httpClient.get(url: urlString).whenComplete { result in
-            defer {
-                _ = httpClient.shutdown()
-            }
-            switch result {
-                case .success(let response):
-                    guard var body = response.body else {
-                        self.logger.info("No body in response")
-                        return
-                    }
-                    
-                    promise.succeed(body)
-                    self.logger.info("JSON downloaded successfully.")
-                case .failure(let error):
-                    promise.fail(error)
-                    self.logger.info("Failed to download JSON: \(error)")
-            }
-        }
-        
-        
-        //        let group = NIOTSEventLoopGroup()
-        //        let bootstrap = NIOTSConnectionBootstrap(group: group)
-        //            .connectTimeout(.hours(1))
-        //            .channelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
-        //           // .tlsOptions(NWProtocolTLS.Options())
-        //            .channelInitializer { channel in
-        //                channel.pipeline.addHTTPClientHandlers().flatMap {
-        //                    channel.pipeline.addHandler(HTTPResponseHandler(bufferPromise: promise))
-        //                }
-        //            }
-        //        let bootstrap = ClientBootstrap(group: eventLoopGroup)
-        //        .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
-        //        .channelInitializer { channel in
-        //            return
-        //                channel.pipeline.addHTTPClientHandlers(position: .first,
-        //                                                       leftOverBytesStrategy: .fireError).flatMap {
-        //                    channel.pipeline.addHandler(HTTPResponseHandler(bufferPromise: promise))
-        //                }
-        //        }
-        
-        //        bootstrap.connect(host: "test.polis.observer", port: url.port ?? 80).whenSuccess { channel in
-        //            logger.info("Triggering request to download \(urlString) with path \(url.path), port: \(url.port)")
-        //            var request = HTTPRequestHead(version: .http1_1, method: .GET, uri: "/polis/polis.json")
-        //            request.headers.add(name: "Host", value: url.host ?? "")
-        //            request.headers.add(name: "Accept", value: "application/json")
-        //            channel.writeAndFlush(HTTPClientRequestPart.head(request), promise: nil)
-        //            channel.writeAndFlush(HTTPClientRequestPart.end(nil), promise: nil)
-        //        }
-        
-        return promise.futureResult
+
+        return HTTPClient(eventLoopGroup: eventLoopGroup).get(url: url, eventLoop: eventLoop)
     }
     
     /// To create a directory at the specified path in non blocking way
@@ -282,37 +228,5 @@ final class PolisDataDownloader {
                     }
             }
         return writeFuture
-    }
-}
-
-class HTTPResponseHandler: ChannelInboundHandler {
-    public typealias InboundIn = HTTPClientResponsePart
-    public typealias OutboundOut = HTTPClientRequestPart
-    
-    private let bufferPromise: EventLoopPromise<ByteBuffer>
-    
-    init(bufferPromise: EventLoopPromise<ByteBuffer>) {
-        self.bufferPromise = bufferPromise
-    }
-    
-    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let httpResponsePart = unwrapInboundIn(data)
-        print(httpResponsePart)
-        switch httpResponsePart {
-            case .head(let header):
-                if header.status == .movedPermanently, let location = header.headers.first(name: "Location") {
-                    // Follow the redirect
-                    
-                }
-            case .body(let buffer):
-                print("Received JSON: \(buffer)")
-                bufferPromise.succeed(buffer)
-            case .end:
-                break
-        }
-    }
-    
-    func errorCaught(context: ChannelHandlerContext, error: Error) {
-        bufferPromise.fail(error)
     }
 }
