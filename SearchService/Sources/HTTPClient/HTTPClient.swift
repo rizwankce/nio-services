@@ -25,7 +25,7 @@ public final class HTTPClient {
 
     /// Makes a GET request to the specified URL.
     func get(url: URL, eventLoop: EventLoop) -> EventLoopFuture<ByteBuffer> {
-        guard let host = url.host, let port = url.port else {
+        guard let host = url.host else {
             return eventLoop.makeFailedFuture(URLError(.badURL))
         }
 
@@ -46,6 +46,7 @@ public final class HTTPClient {
                     }
                 }
             
+            let port = url.port ?? (url.scheme == "https" ? 443 : 80)
             bootstrap.connect(host: host, port: port).whenSuccess { channel in
                 var request = HTTPRequestHead(version: .http1_1, method: .GET, uri: url.path)
                 request.headers.add(name: "Host", value: url.host ?? "")
